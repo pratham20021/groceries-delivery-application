@@ -29,9 +29,13 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment Variables - Never expose secrets, API keys, or credentials to version control
 .env
 *.env
+.env.local
+.env.production
+.env.staging
+.env.development
 
 # Build
 build/
