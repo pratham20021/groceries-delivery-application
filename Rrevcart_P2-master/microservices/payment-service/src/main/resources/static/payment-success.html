@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+        .success { color: #28a745; font-size: 48px; }
+        .info { background: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .btn { background: #528FF0; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="success">✓</div>
+    <h1>Payment Successful!</h1>
+    <div class="info">
+        <p>Your payment has been processed successfully.</p>
+        <p><strong>Payment ID:</strong> <span id="paymentId"></span></p>
+    </div>
+    <a href="/" class="btn">Continue Shopping</a>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentId = urlParams.get('paymentId');
+        document.getElementById('paymentId').textContent = paymentId || 'N/A';
+    </script>
+</body>
+</html>

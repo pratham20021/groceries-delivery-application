@@ -1,0 +1,161 @@
+<div class="admin-container">
+  <div class="admin-header">
+    <h1 class="admin-title">
+      <i class="fas fa-tachometer-alt"></i>
+      Admin <span class="neon-text">Dashboard</span>
+    </h1>
+    <p class="admin-subtitle">Manage your RevCart store</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <!-- Stats Cards -->
+  <div *ngIf="!loading" class="stats-grid">
+    <div class="stat-card glass-card">
+      <div class="stat-icon products">
+        <i class="fas fa-box"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{totalProducts}}</h3>
+        <p>Total Products</p>
+      </div>
+    </div>
+
+    <div class="stat-card glass-card">
+      <div class="stat-icon orders">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{totalOrders}}</h3>
+        <p>Total Orders</p>
+      </div>
+    </div>
+
+    <div class="stat-card glass-card">
+      <div class="stat-icon users">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{totalUsers}}</h3>
+        <p>Total Users</p>
+      </div>
+    </div>
+
+    <div class="stat-card glass-card">
+      <div class="stat-icon revenue">
+        <i class="fas fa-rupee-sign"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{totalRevenue | currency:'INR'}}</h3>
+        <p>Total Revenue</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div *ngIf="!loading" class="quick-actions">
+    <div class="section-header">
+      <h2 class="section-title">Admin Management</h2>
+      <button class="broadcast-btn" (click)="openBroadcastModal()">
+        <i class="fas fa-bullhorn"></i> Broadcast Notification
+      </button>
+    </div>
+    <div class="actions-grid">
+      <button class="action-btn glass-card" routerLink="/admin/products">
+        <i class="fas fa-boxes"></i>
+        <span>Product Catalog</span>
+        <small>Add, Edit, Delete Products</small>
+      </button>
+      
+      <button class="action-btn glass-card" routerLink="/admin/orders">
+        <i class="fas fa-shopping-bag"></i>
+        <span>Order Management</span>
+        <small>Track & Update Orders</small>
+      </button>
+      
+      <button class="action-btn glass-card" routerLink="/admin/users">
+        <i class="fas fa-users"></i>
+        <span>User Management</span>
+        <small>View & Manage Customers</small>
+      </button>
+      
+      <button class="action-btn glass-card" routerLink="/admin/delivery-agents">
+        <i class="fas fa-truck"></i>
+        <span>Delivery Agents</span>
+        <small>Assign & Track Deliveries</small>
+      </button>
+      
+      <button class="action-btn glass-card" routerLink="/admin/coupons">
+        <i class="fas fa-ticket-alt"></i>
+        <span>Promotions</span>
+        <small>Coupons & Discounts</small>
+      </button>
+      
+      <button class="action-btn glass-card" routerLink="/admin/analytics">
+        <i class="fas fa-chart-line"></i>
+        <span>Analytics</span>
+        <small>Sales & Performance</small>
+      </button>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div *ngIf="!loading" class="metrics-section">
+    <h2 class="section-title">Today's Overview</h2>
+    <div class="metrics-grid">
+      <div class="metric-card glass-card">
+        <i class="fas fa-shopping-cart"></i>
+        <h4>New Orders</h4>
+        <p class="metric-value">{{todayOrders}}</p>
+      </div>
+      <div class="metric-card glass-card">
+        <i class="fas fa-rupee-sign"></i>
+        <h4>Today's Revenue</h4>
+        <p class="metric-value">₹{{todayRevenue}}</p>
+      </div>
+      <div class="metric-card glass-card">
+        <i class="fas fa-truck"></i>
+        <h4>Pending Deliveries</h4>
+        <p class="metric-value">{{pendingDeliveries}}</p>
+      </div>
+      <div class="metric-card glass-card">
+        <i class="fas fa-user-plus"></i>
+        <h4>New Customers</h4>
+        <p class="metric-value">{{newCustomers}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Broadcast Modal -->
+  <div *ngIf="showBroadcastModal" class="modal-overlay" (click)="closeBroadcastModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3><i class="fas fa-bullhorn"></i> Broadcast Notification to All Users</h3>
+      <div class="form-group">
+        <label>Type</label>
+        <select [(ngModel)]="notificationType" class="form-control">
+          <option value="ANNOUNCEMENT">Announcement</option>
+          <option value="PROMOTION">Promotion</option>
+          <option value="ALERT">Alert</option>
+          <option value="INFO">Information</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <input [(ngModel)]="notificationTitle" class="form-control" placeholder="Enter title">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea [(ngModel)]="notificationMessage" class="form-control" rows="4" placeholder="Enter message"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="closeBroadcastModal()">Cancel</button>
+        <button class="btn-send" (click)="sendBroadcast()">Send to All Users</button>
+      </div>
+    </div>
+  </div>
+
+</div>

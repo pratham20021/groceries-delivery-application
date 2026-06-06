@@ -1,0 +1,63 @@
+<div class="analytics-container">
+  <h2>Analytics & Reports</h2>
+
+  <div class="sales-overview">
+    <h3>Sales Overview</h3>
+    <div class="sales-cards">
+      <div class="card">
+        <h4>Today</h4>
+        <p class="amount">₹{{salesData.today}}</p>
+      </div>
+      <div class="card">
+        <h4>This Week</h4>
+        <p class="amount">₹{{salesData.week}}</p>
+      </div>
+      <div class="card">
+        <h4>This Month</h4>
+        <p class="amount">₹{{salesData.month}}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-products">
+    <h3>Top Selling Products</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Sales</th>
+          <th>Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of topProducts">
+          <td>{{product.name}}</td>
+          <td>{{product.stock}}</td>
+          <td>₹{{product.price}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="order-stats">
+    <h3>Order Statistics</h3>
+    <div class="stats-grid">
+      <div class="stat pending">
+        <span class="count">{{orderStats.pending}}</span>
+        <span class="label">Pending</span>
+      </div>
+      <div class="stat processing">
+        <span class="count">{{orderStats.processing}}</span>
+        <span class="label">Processing</span>
+      </div>
+      <div class="stat delivered">
+        <span class="count">{{orderStats.delivered}}</span>
+        <span class="label">Delivered</span>
+      </div>
+      <div class="stat cancelled">
+        <span class="count">{{orderStats.cancelled}}</span>
+        <span class="label">Cancelled</span>
+      </div>
+    </div>
+  </div>
+</div>

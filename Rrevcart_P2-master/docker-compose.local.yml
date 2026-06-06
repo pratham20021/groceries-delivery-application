@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  consul:
+    image: hashicorp/consul:latest
+    container_name: revcart-consul-local
+    command: agent -server -ui -bootstrap-expect=1 -client=0.0.0.0
+    ports:
+      - "8500:8500"
+    networks:
+      - revcart-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: revcart-mysql-local
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: revcart
+    volumes:
+      - mysql-local-data:/var/lib/mysql
+    networks:
+      - revcart-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: revcart-redis-local
+    ports:
+      - "6379:6379"
+    networks:
+      - revcart-network
+
+  mongodb:
+    image: mongo:7
+    container_name: revcart-mongodb-local
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongodb-local-data:/data/db
+    networks:
+      - revcart-network
+
+networks:
+  revcart-network:
+    driver: bridge
+
+volumes:
+  mysql-local-data:
+  mongodb-local-data:

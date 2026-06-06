@@ -1,0 +1,166 @@
+.delivery-management {
+  padding: 120px 20px 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+}
+
+.delivery-management .section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+h2 { 
+  color: white; 
+  margin-bottom: 30px; 
+  font-size: 2.5rem;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+h3 { 
+  color: #34495e; 
+  margin: 0 0 20px 0; 
+  font-size: 1.5rem;
+}
+
+
+
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.agent-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.agent-info h4 { margin: 0 0 10px 0; color: #2c3e50; }
+.agent-info p { margin: 5px 0; color: #555; font-size: 14px; }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.status-available { background: #27ae60; color: white; }
+.status-busy { background: #e74c3c; color: white; }
+.status-offline { background: #95a5a6; color: white; }
+.status-assigned { background: #3498db; color: white; }
+.status-picked { background: #f39c12; color: white; }
+.status-transit { background: #9b59b6; color: white; }
+.status-delivered { background: #2ecc71; color: white; }
+
+.agent-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.agent-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 5px;
+  background: #3498db;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.agent-actions button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.deliveries-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.deliveries-table th {
+  background: #34495e;
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.deliveries-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.deliveries-table button {
+  padding: 6px 12px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  min-width: 400px;
+}
+
+.modal-content h3 { margin-top: 0; }
+
+.modal-content select {
+  width: 100%;
+  padding: 10px;
+  margin: 20px 0;
+  border: 2px solid #e0e0e0;
+  border-radius: 5px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-actions button:first-child {
+  background: #27ae60;
+  color: white;
+}
+
+.modal-actions button:last-child {
+  background: #e74c3c;
+  color: white;
+}

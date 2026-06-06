@@ -1,0 +1,49 @@
+<div class="product-card">
+  <div class="product-image">
+    <img [src]="product.imageUrl" [alt]="product.name" loading="lazy">
+    <div class="product-badge" *ngIf="product.discount">
+      {{product.discount}}% OFF
+    </div>
+    
+    <!-- Add to Cart Button (shown when quantity is 0) -->
+    <button 
+      class="add-to-cart-btn" 
+      *ngIf="quantity === 0"
+      (click)="addToCart()" 
+      [disabled]="!isInStock()">
+      <i class="fas fa-plus" *ngIf="isInStock()"></i>
+      <span *ngIf="!isInStock()" class="out-of-stock">Out of Stock</span>
+    </button>
+    
+    <!-- Quantity Counter (shown when quantity > 0) -->
+    <div class="quantity-counter" *ngIf="quantity > 0">
+      <button class="quantity-btn decrease" (click)="decreaseQuantity()">
+        <i class="fas fa-minus"></i>
+      </button>
+      <span class="quantity-display">{{quantity}}</span>
+      <button class="quantity-btn increase" (click)="increaseQuantity()" [disabled]="quantity >= getCurrentStock()">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+  </div>
+  
+  <div class="product-info">
+    <h4 class="product-name">{{product.name}}</h4>
+    <div class="product-rating">
+      <div class="stars">
+        <i class="fas fa-star" *ngFor="let star of getStars(getRating())"></i>
+      </div>
+      <span class="rating-text">({{getRating()}})</span>
+    </div>
+    <div class="product-price">
+      <span class="current-price">₹{{product.price}}</span>
+      <span class="original-price" *ngIf="product.originalPrice">₹{{product.originalPrice}}</span>
+    </div>
+    <div class="stock-info" *ngIf="getCurrentStock() <= 5 && getCurrentStock() > 0">
+      <span class="low-stock">Only {{getCurrentStock()}} left!</span>
+    </div>
+    <div class="stock-info" *ngIf="getCurrentStock() === 0">
+      <span class="out-of-stock-badge">Out of Stock</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,123 @@
+<div class="coupons-container">
+  <div class="header">
+    <h2>Coupon Management</h2>
+    <button class="btn-primary" (click)="openCreateForm()">+ Create Coupon</button>
+  </div>
+
+  <div class="coupons-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Description</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Min Order</th>
+          <th>Valid Until</th>
+          <th>Usage</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let coupon of coupons">
+          <td><strong>{{ coupon.code }}</strong></td>
+          <td>{{ coupon.description }}</td>
+          <td>{{ coupon.discountType }}</td>
+          <td>{{ coupon.discountType === 'PERCENTAGE' ? coupon.discountValue + '%' : '$' + coupon.discountValue }}</td>
+          <td>{{ coupon.minOrderAmount ? '$' + coupon.minOrderAmount : '-' }}</td>
+          <td>{{ coupon.validUntil ? (coupon.validUntil | date:'short') : 'No expiry' }}</td>
+          <td>{{ coupon.usedCount || 0 }} / {{ coupon.usageLimit || '∞' }}</td>
+          <td>
+            <span [class]="coupon.active ? 'status-active' : 'status-inactive'">
+              {{ coupon.active ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-edit" (click)="openEditForm(coupon)">Edit</button>
+            <button class="btn-toggle" (click)="toggleStatus(coupon)">
+              {{ coupon.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button class="btn-delete" (click)="deleteCoupon(coupon.id!)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal" *ngIf="showForm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ editMode ? 'Edit Coupon' : 'Create Coupon' }}</h3>
+        <button class="close-btn" (click)="closeForm()">&times;</button>
+      </div>
+      <form (ngSubmit)="saveCoupon()">
+        <div class="form-group">
+          <label>Coupon Code *</label>
+          <input type="text" [(ngModel)]="currentCoupon.code" name="code" required [disabled]="editMode">
+        </div>
+
+        <div class="form-group">
+          <label>Description *</label>
+          <input type="text" [(ngModel)]="currentCoupon.description" name="description" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Discount Type *</label>
+            <select [(ngModel)]="currentCoupon.discountType" name="discountType" required>
+              <option value="PERCENTAGE">Percentage</option>
+              <option value="FIXED">Fixed Amount</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Discount Value *</label>
+            <input type="number" [(ngModel)]="currentCoupon.discountValue" name="discountValue" required min="0">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Min Order Amount</label>
+            <input type="number" [(ngModel)]="currentCoupon.minOrderAmount" name="minOrderAmount" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Max Discount Amount</label>
+            <input type="number" [(ngModel)]="currentCoupon.maxDiscountAmount" name="maxDiscountAmount" min="0">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Valid From</label>
+            <input type="datetime-local" [(ngModel)]="currentCoupon.validFrom" name="validFrom">
+          </div>
+
+          <div class="form-group">
+            <label>Valid Until</label>
+            <input type="datetime-local" [(ngModel)]="currentCoupon.validUntil" name="validUntil">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Usage Limit</label>
+          <input type="number" [(ngModel)]="currentCoupon.usageLimit" name="usageLimit" min="1">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="currentCoupon.active" name="active">
+            Active
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" (click)="closeForm()">Cancel</button>
+          <button type="submit" class="btn-save">{{ editMode ? 'Update' : 'Create' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

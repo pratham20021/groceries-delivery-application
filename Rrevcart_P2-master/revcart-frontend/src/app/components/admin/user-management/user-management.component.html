@@ -1,0 +1,38 @@
+<div class="user-management-container">
+  <h2>User Management</h2>
+  
+  <div *ngIf="loading" class="loading">Loading users...</div>
+  
+  <div *ngIf="!loading" class="users-table">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Current Role</th>
+          <th>Change Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td>{{ user.id }}</td>
+          <td>{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.phone || 'N/A' }}</td>
+          <td>
+            <span class="role-badge" [ngClass]="user.role">{{ user.role }}</span>
+          </td>
+          <td>
+            <select (change)="updateRole(user.id, $any($event.target).value)" [value]="user.role">
+              <option value="CUSTOMER">CUSTOMER</option>
+              <option value="ADMIN">ADMIN</option>
+              <option value="DELIVERY_AGENT">DELIVERY_AGENT</option>
+            </select>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

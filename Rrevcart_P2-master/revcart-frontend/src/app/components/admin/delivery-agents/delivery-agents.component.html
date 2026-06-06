@@ -1,0 +1,61 @@
+<div class="delivery-management">
+  <h2>Delivery Agent Management</h2>
+
+  <div class="section">
+    <h3>Delivery Agents ({{agents.length}})</h3>
+    <div class="agents-grid">
+      <div *ngFor="let agent of agents" class="agent-card">
+        <div class="agent-info">
+          <h4>{{agent.name}}</h4>
+          <p>📞 {{agent.phone}}</p>
+          <p>🚗 {{agent.vehicleType}}</p>
+          <span [class]="'status-badge ' + getStatusClass(agent.status)">{{agent.status}}</span>
+        </div>
+        <div class="agent-actions">
+          <button (click)="updateAgentStatus(agent.id!, 'AVAILABLE')" [disabled]="agent.status === 'AVAILABLE'">Available</button>
+          <button (click)="updateAgentStatus(agent.id!, 'OFFLINE')" [disabled]="agent.status === 'OFFLINE'">Offline</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Active Deliveries ({{deliveries.length}})</h3>
+    <table class="deliveries-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Agent</th>
+          <th>Status</th>
+          <th>Address</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let delivery of deliveries">
+          <td>#{{delivery.orderId}}</td>
+          <td>{{getAgentName(delivery.deliveryAgentId!)}}</td>
+          <td><span [class]="'status-badge ' + getStatusClass(delivery.status)">{{delivery.status}}</span></td>
+          <td>{{delivery.deliveryAddress}}</td>
+          <td>
+            <button (click)="openReassignModal(delivery)" *ngIf="delivery.status !== 'DELIVERED'">Reassign</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal" *ngIf="selectedDelivery" (click)="selectedDelivery = null">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Reassign Delivery</h3>
+      <p>Order #{{selectedDelivery.orderId}}</p>
+      <select [(ngModel)]="selectedAgentId">
+        <option *ngFor="let agent of agents" [value]="agent.id">{{agent.name}} - {{agent.status}}</option>
+      </select>
+      <div class="modal-actions">
+        <button (click)="reassignAgent()">Reassign</button>
+        <button (click)="selectedDelivery = null">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

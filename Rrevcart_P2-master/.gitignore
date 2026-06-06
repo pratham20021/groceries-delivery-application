@@ -1,0 +1,54 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+*.log
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+.angular/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env
+
+# Build
+build/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Database scripts (optional - remove if you want to include them)
+database-scripts/
+data-migration/
+
+# Scratch files
+product-grid-html.html
+product-card-alignment-fix.css
+fix_product_images.sql
+grocery-image-updates.sql

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MongoDB Database Creator</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+        button { padding: 15px 30px; margin: 10px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .result { background: #f4f4f4; padding: 15px; margin: 10px 0; border-radius: 5px; white-space: pre-wrap; min-height: 50px; }
+        h2 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 10px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🍃 MongoDB Database Creator</h1>
+    
+    <h2>Step 1: Check Services</h2>
+    <button onclick="checkServices()">Check if Services are Running</button>
+    <div id="check-result" class="result"></div>
+
+    <h2>Step 2: Create notification_db</h2>
+    <button onclick="createNotificationDB()">Create notification_db</button>
+    <div id="notification-result" class="result"></div>
+
+    <h2>Step 3: Create analytics_db</h2>
+    <button onclick="createAnalyticsDB()">Create analytics_db</button>
+    <div id="analytics-result" class="result"></div>
+
+    <h2>Step 4: Verify</h2>
+    <p>After clicking the buttons above, refresh MongoDB Compass to see the databases!</p>
+
+    <script>
+        async function checkServices() {
+            const result = document.getElementById('check-result');
+            result.innerHTML = 'Checking...';
+            
+            try {
+                // Check notification-service
+                const notifResponse = await fetch('http://localhost:8087/actuator/health');
+                const notifData = await notifResponse.json();
+                
+                // Check analytics-service
+                const analyticsResponse = await fetch('http://localhost:8089/actuator/health');
+                const analyticsData = await analyticsResponse.json();
+                
+                result.innerHTML = `<span class="success">✅ Both services are running!</span>\n\n` +
+                    `notification-service (8087): ${notifData.status}\n` +
+                    `analytics-service (8089): ${analyticsData.status}`;
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error: ${error.message}</span>\n\n` +
+                    `Make sure both services are running:\n` +
+                    `- notification-service on port 8087\n` +
+                    `- analytics-service on port 8089`;
+            }
+        }
+
+        async function createNotificationDB() {
+            const result = document.getElementById('notification-result');
+            result.innerHTML = 'Creating notification_db...';
+            
+            try {
+                const response = await fetch('http://localhost:8087/notifications/test', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                result.innerHTML = `<span class="success">✅ notification_db created!</span>\n\n` +
+                    `Database: notification_db\n` +
+                    `Collection: notifications\n` +
+                    `Test document ID: ${data.id}\n\n` +
+                    `Refresh MongoDB Compass to see it!`;
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error: ${error.message}</span>\n\n` +
+                    `Make sure notification-service is running on port 8087`;
+            }
+        }
+
+        async function createAnalyticsDB() {
+            const result = document.getElementById('analytics-result');
+            result.innerHTML = 'Creating analytics_db...';
+            
+            try {
+                const response = await fetch('http://localhost:8089/analytics/test', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                result.innerHTML = `<span class="success">✅ analytics_db created!</span>\n\n` +
+                    `Database: analytics_db\n` +
+                    `Collection: analytics\n` +
+                    `Test document ID: ${data.id}\n\n` +
+                    `Refresh MongoDB Compass to see it!`;
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error: ${error.message}</span>\n\n` +
+                    `Make sure analytics-service is running on port 8089`;
+            }
+        }
+    </script>
+</body>
+</html>

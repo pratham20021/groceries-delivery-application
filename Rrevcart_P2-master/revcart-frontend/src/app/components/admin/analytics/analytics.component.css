@@ -1,0 +1,80 @@
+.analytics-container {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  margin: 20px;
+}
+
+h2 { color: #2c3e50; margin-bottom: 30px; }
+h3 { color: #34495e; margin: 20px 0; }
+
+.sales-overview, .top-products, .order-stats { margin-bottom: 40px; }
+
+.sales-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.card h4 { color: #7f8c8d; margin-bottom: 10px; }
+.amount { font-size: 2rem; font-weight: bold; color: #27ae60; margin: 0; }
+
+table {
+  width: 100%;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+th {
+  background: #34495e;
+  color: white;
+  padding: 15px;
+  text-align: left;
+}
+
+td {
+  padding: 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+}
+
+.stat {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stat .count {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.stat .label {
+  display: block;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.stat.pending .count { color: #f39c12; }
+.stat.processing .count { color: #3498db; }
+.stat.delivered .count { color: #27ae60; }
+.stat.cancelled .count { color: #e74c3c; }
