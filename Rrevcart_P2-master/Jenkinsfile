@@ -1,38 +1,40 @@
 pipeline {
     agent any
-    
+
     environment {
-        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_HUB_USERNAME = 'pratham20021'
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
         GITHUB_CREDENTIALS_ID = 'github-credentials'
+        IMAGE_TAG = "latest"
     }
-    
+
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'master',
+                git branch: 'main',
                     credentialsId: "${GITHUB_CREDENTIALS_ID}",
-                    url: 'https://github.com/pratham20021/Rrevcart_P2.git'
+                    url: 'https://github.com/pratham20021/groceries-delivery-application.git'
             }
         }
-        
+
         stage('Build Backend') {
             steps {
-                dir('microservices') {
-                    bat 'mvn clean package -DskipTests'
+                dir('Rrevcart_P2-master/microservices') {
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
-        
+
         stage('Build Frontend') {
             steps {
-                dir('revcart-frontend') {
-                    bat 'npm install'
-                    bat 'npm run build'
+                dir('Rrevcart_P2-master/revcart-frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
                 }
             }
         }
-        
+
         stage('Build Docker Images') {
             steps {
                 script {
@@ -42,37 +44,65 @@ pipeline {
                         'payment-service', 'notification-service', 'delivery-service',
                         'analytics-service', 'admin-service'
                     ]
-                    
                     services.each { service ->
-                        bat "docker build -t ${DOCKER_REGISTRY}/revcart-${service}:latest ./microservices/${service}"
+                        sh "docker build -t ${DOCKER_HUB_USERNAME}/revcart-${service}:${IMAGE_TAG} ./Rrevcart_P2-master/microservices/${service}"
                     }
-                    
-                    bat "docker build -t ${DOCKER_REGISTRY}/revcart-frontend:latest ./revcart-frontend"
+                    sh "docker build -t ${DOCKER_HUB_USERNAME}/revcart-frontend:${IMAGE_TAG} ./Rrevcart_P2-master/revcart-frontend"
                 }
             }
         }
-        
+
         stage('Push to Docker Hub') {
             steps {
-                echo 'Docker images built successfully! Push to Docker Hub manually or configure credentials.'
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    script {
+                        def services = [
+                            'api-gateway', 'auth-service', 'user-service',
+                            'product-service', 'cart-service', 'order-service',
+                            'payment-service', 'notification-service', 'delivery-service',
+                            'analytics-service', 'admin-service'
+                        ]
+                        services.each { service ->
+                            sh "docker push ${DOCKER_HUB_USERNAME}/revcart-${service}:${IMAGE_TAG}"
+                        }
+                        sh "docker push ${DOCKER_HUB_USERNAME}/revcart-frontend:${IMAGE_TAG}"
+                    }
+                }
             }
         }
-        
+
         stage('Deploy') {
             steps {
-                echo 'Docker images ready! Deploy using: docker-compose up -d'
+                withCredentials([
+                    string(credentialsId: 'mail-username',       variable: 'MAIL_USERNAME'),
+                    string(credentialsId: 'mail-password',       variable: 'MAIL_PASSWORD'),
+                    string(credentialsId: 'google-client-id',    variable: 'GOOGLE_CLIENT_ID'),
+                    string(credentialsId: 'google-client-secret',variable: 'GOOGLE_CLIENT_SECRET')
+                ]) {
+                    sh '''
+                        cd Rrevcart_P2-master
+                        docker-compose down --remove-orphans
+                        docker-compose up -d
+                    '''
+                }
             }
         }
     }
-    
+
     post {
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Pipeline executed successfully! RevCart is live.'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline failed! Check the logs above for details.'
         }
         always {
+            sh 'docker logout'
             cleanWs()
         }
     }

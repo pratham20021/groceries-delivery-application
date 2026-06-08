@@ -1,0 +1,19 @@
+aws_region  = "us-east-1"
+project     = "revcart"
+environment = "prod"
+
+vpc_cidr = "10.0.0.0/16"
+azs      = ["us-east-1a", "us-east-1b"]
+
+db_password          = "YourStrongPassword123!"
+mail_username        = "your-email@gmail.com"
+mail_password        = "your-gmail-app-password"
+google_client_id     = "your-google-client-id"
+google_client_secret = "your-google-client-secret"
+
+rds_instance_class   = "db.t3.medium"
+redis_node_type      = "cache.t3.micro"
+docdb_instance_class = "db.t3.medium"
+
+# Leave empty for HTTP, or provide ACM cert ARN for HTTPS
+certificate_arn = ""

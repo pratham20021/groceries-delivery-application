@@ -1,18 +1,8 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /build
 COPY pom.xml .
-COPY api-gateway/pom.xml api-gateway/
-COPY auth-service/pom.xml auth-service/
-COPY user-service/pom.xml user-service/
-COPY product-service/pom.xml product-service/
-COPY cart-service/pom.xml cart-service/
-COPY order-service/pom.xml order-service/
-COPY payment-service/pom.xml payment-service/
-COPY notification-service/pom.xml notification-service/
-COPY delivery-service/pom.xml delivery-service/
-COPY analytics-service/pom.xml analytics-service/
-COPY admin-service/pom.xml admin-service/
-RUN mvn dependency:go-offline -pl api-gateway -q
+COPY api-gateway/pom.xml api-gateway/pom.xml
+RUN mvn dependency:go-offline -pl api-gateway -am -q
 COPY api-gateway/src api-gateway/src
 RUN mvn package -pl api-gateway -DskipTests -q
 
