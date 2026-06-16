@@ -2,22 +2,41 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USERNAME = 'pratham20021'
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
-        GITHUB_CREDENTIALS_ID = 'github-credentials'
-        IMAGE_TAG = "latest"
+        // ── AWS ───────────────────────────────────────────────────────────────
+        AWS_REGION          = 'us-east-1'
+        AWS_ACCOUNT_ID      = credentials('aws-account-id')
+        ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECS_CLUSTER         = 'revcart-prod-cluster'
+
+        // ── Image tag — use Git commit SHA for traceability ───────────────────
+        IMAGE_TAG           = "${env.GIT_COMMIT?.take(7) ?: 'latest'}"
+
+        // ── SonarQube ─────────────────────────────────────────────────────────
+        SONAR_PROJECT_KEY   = 'revcart-microservices'
+
+        // ── Repo structure ────────────────────────────────────────────────────
+        SERVICES = 'api-gateway,auth-service,user-service,product-service,cart-service,order-service,payment-service,notification-service,delivery-service,analytics-service,admin-service'
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 90, unit: 'MINUTES')
+        disableConcurrentBuilds()
     }
 
     stages {
 
+        // ── Stage 1: Checkout ─────────────────────────────────────────────────
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: "${GITHUB_CREDENTIALS_ID}",
+                    credentialsId: 'github-credentials',
                     url: 'https://github.com/pratham20021/groceries-delivery-application.git'
+                echo "Building commit: ${env.GIT_COMMIT}"
             }
         }
 
+        // ── Stage 2: Build Backend ─────────────────────────────────────────────
         stage('Build Backend') {
             steps {
                 dir('Rrevcart_P2-master/microservices') {
@@ -26,69 +45,224 @@ pipeline {
             }
         }
 
+        // ── Stage 3: Build Frontend ────────────────────────────────────────────
         stage('Build Frontend') {
             steps {
                 dir('Rrevcart_P2-master/revcart-frontend') {
-                    sh 'npm install'
-                    sh 'npm run build'
+                    sh 'npm ci'
+                    sh 'npm run build -- --configuration=production'
                 }
             }
         }
 
+        // ── Stage 4: SonarQube Analysis ────────────────────────────────────────
+        stage('SonarQube Analysis') {
+            steps {
+                dir('Rrevcart_P2-master/microservices') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            mvn sonar:sonar \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName="RevCart Microservices" \
+                                -Dsonar.sources=src/main/java \
+                                -Dsonar.tests=src/test/java \
+                                -Dsonar.java.binaries=target/classes \
+                                -Dsonar.exclusions=**/target/**,**/*.xml,**/*.json
+                        '''
+                    }
+                }
+            }
+        }
+
+        // ── Stage 5: SonarQube Quality Gate ───────────────────────────────────
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // ── Stage 6: Build Docker Images ───────────────────────────────────────
         stage('Build Docker Images') {
             steps {
                 script {
-                    def services = [
-                        'api-gateway', 'auth-service', 'user-service',
-                        'product-service', 'cart-service', 'order-service',
-                        'payment-service', 'notification-service', 'delivery-service',
-                        'analytics-service', 'admin-service'
-                    ]
+                    def services = env.SERVICES.split(',')
                     services.each { service ->
-                        sh "docker build -t ${DOCKER_HUB_USERNAME}/revcart-${service}:${IMAGE_TAG} ./Rrevcart_P2-master/microservices/${service}"
+                        sh """
+                            docker build \
+                                -t ${ECR_REGISTRY}/revcart/${service}:${IMAGE_TAG} \
+                                -t ${ECR_REGISTRY}/revcart/${service}:latest \
+                                ./Rrevcart_P2-master/microservices/${service}
+                        """
                     }
-                    sh "docker build -t ${DOCKER_HUB_USERNAME}/revcart-frontend:${IMAGE_TAG} ./Rrevcart_P2-master/revcart-frontend"
+                    sh """
+                        docker build \
+                            -t ${ECR_REGISTRY}/revcart/frontend:${IMAGE_TAG} \
+                            -t ${ECR_REGISTRY}/revcart/frontend:latest \
+                            ./Rrevcart_P2-master/revcart-frontend
+                    """
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        // ── Stage 7: Push Images to ECR ────────────────────────────────────────
+        stage('Push to ECR') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: "${DOCKER_CREDENTIALS_ID}",
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                                  credentialsId: 'aws-credentials']]) {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    """
                     script {
-                        def services = [
-                            'api-gateway', 'auth-service', 'user-service',
-                            'product-service', 'cart-service', 'order-service',
-                            'payment-service', 'notification-service', 'delivery-service',
-                            'analytics-service', 'admin-service'
-                        ]
+                        def services = env.SERVICES.split(',')
                         services.each { service ->
-                            sh "docker push ${DOCKER_HUB_USERNAME}/revcart-${service}:${IMAGE_TAG}"
+                            sh "docker push ${ECR_REGISTRY}/revcart/${service}:${IMAGE_TAG}"
+                            sh "docker push ${ECR_REGISTRY}/revcart/${service}:latest"
                         }
-                        sh "docker push ${DOCKER_HUB_USERNAME}/revcart-frontend:${IMAGE_TAG}"
+                        sh "docker push ${ECR_REGISTRY}/revcart/frontend:${IMAGE_TAG}"
+                        sh "docker push ${ECR_REGISTRY}/revcart/frontend:latest"
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        // ── Stage 8: Terraform — Provision AWS Infrastructure ─────────────────
+        stage('Terraform Apply') {
+            when {
+                branch 'main'
+            }
             steps {
                 withCredentials([
-                    string(credentialsId: 'mail-username',       variable: 'MAIL_USERNAME'),
-                    string(credentialsId: 'mail-password',       variable: 'MAIL_PASSWORD'),
-                    string(credentialsId: 'google-client-id',    variable: 'GOOGLE_CLIENT_ID'),
-                    string(credentialsId: 'google-client-secret',variable: 'GOOGLE_CLIENT_SECRET')
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],
+                    string(credentialsId: 'db-password',            variable: 'TF_VAR_db_password'),
+                    string(credentialsId: 'mail-username',          variable: 'TF_VAR_mail_username'),
+                    string(credentialsId: 'mail-password',          variable: 'TF_VAR_mail_password'),
+                    string(credentialsId: 'google-client-id',       variable: 'TF_VAR_google_client_id'),
+                    string(credentialsId: 'google-client-secret',   variable: 'TF_VAR_google_client_secret')
                 ]) {
+                    dir('Rrevcart_P2-master/terraform') {
+                        sh 'terraform init -input=false'
+                        sh 'terraform validate'
+                        sh '''
+                            terraform plan -input=false -out=tfplan \
+                                -var="aws_region=${AWS_REGION}"
+                        '''
+                        sh 'terraform apply -input=false -auto-approve tfplan'
+                    }
+                }
+            }
+        }
+
+        // ── Stage 9: Deploy — Force new ECS deployments ───────────────────────
+        stage('Deploy to ECS') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                                  credentialsId: 'aws-credentials']]) {
+                    script {
+                        def services = env.SERVICES.split(',').toList() + ['frontend']
+                        services.each { service ->
+                            def ecsService = "revcart-prod-${service}"
+                            sh """
+                                aws ecs update-service \
+                                    --cluster ${ECS_CLUSTER} \
+                                    --service ${ecsService} \
+                                    --force-new-deployment \
+                                    --region ${AWS_REGION}
+                            """
+                        }
+                        // Wait for all services to stabilize
+                        services.each { service ->
+                            def ecsService = "revcart-prod-${service}"
+                            sh """
+                                aws ecs wait services-stable \
+                                    --cluster ${ECS_CLUSTER} \
+                                    --services ${ecsService} \
+                                    --region ${AWS_REGION}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Stage 10: Smoke Test ───────────────────────────────────────────────
+        stage('Smoke Test') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                                  credentialsId: 'aws-credentials']]) {
+                    script {
+                        def albDns = sh(
+                            script: """
+                                aws elbv2 describe-load-balancers \
+                                    --names revcart-prod-alb \
+                                    --region ${AWS_REGION} \
+                                    --query 'LoadBalancers[0].DNSName' \
+                                    --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        sh """
+                            echo "ALB DNS: ${albDns}"
+                            curl -sf --retry 5 --retry-delay 10 \
+                                http://${albDns}/api/auth/actuator/health | grep -q 'UP'
+                            echo "Smoke test passed — RevCart is live at http://${albDns}"
+                        """
+                    }
+                }
+            }
+        }
+
+        // ── Stage 11: Start Prometheus + Grafana monitoring ─────────────────────
+        stage('Start Monitoring') {
+            steps {
+                dir('Rrevcart_P2-master') {
+                    // Start only Prometheus and Grafana — app services run on AWS ECS
+                    sh 'docker compose up -d prometheus grafana'
+
+                    // Wait for Prometheus to be ready
                     sh '''
-                        cd Rrevcart_P2-master
-                        docker-compose down --remove-orphans
-                        docker-compose up -d
+                        echo "Waiting for Prometheus..."
+                        for i in $(seq 1 12); do
+                            if curl -sf http://localhost:9090/-/ready > /dev/null 2>&1; then
+                                echo "Prometheus is ready"
+                                break
+                            fi
+                            echo "Attempt $i/12 — retrying in 5s..."
+                            sleep 5
+                        done
                     '''
+
+                    // Validate Prometheus config is valid
+                    sh 'docker exec revcart-prometheus promtool check config /etc/prometheus/prometheus.yml'
+
+                    // Reload Prometheus config (picks up any rule changes)
+                    sh 'curl -sf -X POST http://localhost:9090/-/reload || true'
+
+                    // Wait for Grafana to be ready
+                    sh '''
+                        echo "Waiting for Grafana..."
+                        for i in $(seq 1 12); do
+                            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+                                echo "Grafana is ready"
+                                break
+                            fi
+                            echo "Attempt $i/12 — retrying in 5s..."
+                            sleep 5
+                        done
+                    '''
+
+                    echo "Monitoring stack is live:"
+                    echo "  Prometheus : http://localhost:9090"
+                    echo "  Grafana    : http://localhost:3000  (admin/admin)"
                 }
             }
         }
@@ -96,13 +270,14 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline executed successfully! RevCart is live.'
+            echo "Pipeline SUCCESS — RevCart deployed. Commit: ${env.GIT_COMMIT}"
         }
         failure {
-            echo 'Pipeline failed! Check the logs above for details.'
+            echo "Pipeline FAILED at stage: ${env.STAGE_NAME}. Check logs above."
         }
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
+            sh 'docker system prune -f --filter "until=24h" || true'
             cleanWs()
         }
     }

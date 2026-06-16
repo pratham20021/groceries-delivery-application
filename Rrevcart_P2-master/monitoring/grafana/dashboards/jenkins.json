@@ -1,0 +1,90 @@
+{
+  "title": "Jenkins CI/CD",
+  "uid": "revcart-jenkins",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Jenkins Up",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "up{job=\"jenkins\"}", "legendFormat": "Jenkins" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Builds",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "jenkins_builds_total_build_count_total", "legendFormat": "Total" }],
+      "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "title": "Failed Builds",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "jenkins_builds_failed_build_count_total", "legendFormat": "Failed" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 1 }] }, "color": { "mode": "thresholds" } } }
+    },
+    {
+      "id": 4,
+      "title": "Success Rate",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [{
+        "expr": "(jenkins_builds_successful_build_count_total / jenkins_builds_total_build_count_total) * 100",
+        "legendFormat": "Success %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 70 }, { "color": "green", "value": 90 }] },
+          "color": { "mode": "thresholds" }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Build Duration (last 1h)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "jenkins_builds_last_build_duration_milliseconds / 1000", "legendFormat": "{{ job_name }}" }],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 6,
+      "title": "Build Rate (per min)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "rate(jenkins_builds_total_build_count_total[5m]) * 60", "legendFormat": "builds/min" }]
+    },
+    {
+      "id": 7,
+      "title": "JVM Heap (Jenkins)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{ "expr": "jenkins_memory_heap_used / 1024 / 1024", "legendFormat": "Heap Used (MB)" }],
+      "fieldConfig": { "defaults": { "unit": "MB" } }
+    },
+    {
+      "id": 8,
+      "title": "Jenkins Executors",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "jenkins_executors_count", "legendFormat": "Total Executors" },
+        { "expr": "jenkins_executors_in_use_count", "legendFormat": "In Use" }
+      ]
+    }
+  ]
+}

@@ -7,12 +7,14 @@ terraform {
     }
   }
 
-  # Uncomment to store state in S3
-  # backend "s3" {
-  #   bucket = "revcart-terraform-state"
-  #   key    = "revcart/terraform.tfstate"
-  #   region = var.aws_region
-  # }
+  # S3 remote state — Jenkins uses this to share state across builds
+  backend "s3" {
+    bucket         = "revcart-terraform-state"
+    key            = "revcart/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "revcart-terraform-locks"
+  }
 }
 
 provider "aws" {
