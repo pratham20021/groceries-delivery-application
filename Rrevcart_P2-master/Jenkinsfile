@@ -91,7 +91,7 @@ pipeline {
                 script {
                     def services = env.SERVICES.split(',')
                     services.each { service ->
-                        bat "docker build -t %ECR_REGISTRY%/revcart/${service}:latest Rrevcart_P2-master/microservices/${service}"
+                        bat "docker build -t %ECR_REGISTRY%/revcart/${service}:latest -f Rrevcart_P2-master/microservices/${service}/Dockerfile Rrevcart_P2-master/microservices"
                     }
                     bat "docker build -t %ECR_REGISTRY%/revcart/frontend:latest Rrevcart_P2-master/revcart-frontend"
                 }
