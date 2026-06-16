@@ -56,11 +56,8 @@ pipeline {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                             bat """
                                 mvn sonar:sonar ^
-                                    -Dsonar.projectKey=revcart ^
-                                    -Dsonar.projectName="RevCart Microservices" ^
-                                    -Dsonar.java.binaries=target/classes,api-gateway/target/classes,auth-service/target/classes,user-service/target/classes,product-service/target/classes,cart-service/target/classes,order-service/target/classes,payment-service/target/classes,notification-service/target/classes,delivery-service/target/classes,analytics-service/target/classes,admin-service/target/classes ^
-                                    -Dsonar.exclusions=**/target/**,**/*.xml,**/*.json ^
-                                    -Dsonar.login=%SONAR_TOKEN%
+                                    -Dsonar.token=%SONAR_TOKEN% ^
+                                    -Dsonar.exclusions=**/target/**
                             """
                         }
                     }
