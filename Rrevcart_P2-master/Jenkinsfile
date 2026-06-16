@@ -61,11 +61,10 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                     bat """
-                        echo Waiting 15s for SonarQube to process the report...
                         ping -n 16 127.0.0.1 > nul
                         curl -sf -u %SONAR_TOKEN%: "http://localhost:9000/api/qualitygates/project_status?projectKey=%SONAR_PROJECT_KEY%" -o qg.json
                         type qg.json
-                        findstr "ERROR" qg.json && (echo Quality Gate FAILED && exit 1) || echo Quality Gate PASSED
+                        findstr "\"status\":\"ERROR\"" qg.json && (echo Quality Gate FAILED && exit 1) || exit 0
                     """
                 }
             }
