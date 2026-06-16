@@ -109,8 +109,10 @@ pipeline {
         // ── Stage 7: Push Images to ECR ────────────────────────────────────────
         stage('Push to ECR') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
                     sh """
                         aws ecr get-login-password --region ${AWS_REGION} | \
                         docker login --username AWS --password-stdin ${ECR_REGISTRY}
@@ -135,12 +137,13 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],
-                    string(credentialsId: 'db-password',            variable: 'TF_VAR_db_password'),
-                    string(credentialsId: 'mail-username',          variable: 'TF_VAR_mail_username'),
-                    string(credentialsId: 'mail-password',          variable: 'TF_VAR_mail_password'),
-                    string(credentialsId: 'google-client-id',       variable: 'TF_VAR_google_client_id'),
-                    string(credentialsId: 'google-client-secret',   variable: 'TF_VAR_google_client_secret')
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'db-password',           variable: 'TF_VAR_db_password'),
+                    string(credentialsId: 'mail-username',         variable: 'TF_VAR_mail_username'),
+                    string(credentialsId: 'mail-password',         variable: 'TF_VAR_mail_password'),
+                    string(credentialsId: 'google-client-id',      variable: 'TF_VAR_google_client_id'),
+                    string(credentialsId: 'google-client-secret',  variable: 'TF_VAR_google_client_secret')
                 ]) {
                     dir('Rrevcart_P2-master/terraform') {
                         sh 'terraform init -input=false'
@@ -161,8 +164,10 @@ pipeline {
                 branch 'main'
             }
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
                     script {
                         def services = env.SERVICES.split(',').toList() + ['frontend']
                         services.each { service ->
@@ -196,8 +201,10 @@ pipeline {
                 branch 'main'
             }
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
                     script {
                         def albDns = sh(
                             script: """
