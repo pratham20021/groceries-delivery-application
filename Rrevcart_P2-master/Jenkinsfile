@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // ── AWS ───────────────────────────────────────────────────────────────
-        AWS_REGION          = 'us-east-1'
+        AWS_REGION          = 'ap-south-1'
         AWS_ACCOUNT_ID      = credentials('aws-account-id')
         ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECS_CLUSTER         = 'revcart-prod-cluster'
