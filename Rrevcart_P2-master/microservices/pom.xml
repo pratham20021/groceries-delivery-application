@@ -23,7 +23,7 @@
         <spring-cloud.version>2022.0.3</spring-cloud.version>
         <consul.version>3.1.1</consul.version>
         <sonar.organization>revcart</sonar.organization>
-        <sonar.projectKey>revcart-microservices</sonar.projectKey>
+        <sonar.projectKey>revcart</sonar.projectKey>
         <sonar.host.url>http://localhost:9000</sonar.host.url>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
