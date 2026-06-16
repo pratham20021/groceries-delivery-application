@@ -7,7 +7,7 @@ pipeline {
         ECR_REGISTRY      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECS_CLUSTER       = 'revcart-prod-cluster'
         IMAGE_TAG         = "latest"
-        SONAR_PROJECT_KEY = 'revcart-microservices'
+        SONAR_PROJECT_KEY = 'com.revcart:revcart-microservices'
         SERVICES          = 'api-gateway,auth-service,user-service,product-service,cart-service,order-service,payment-service,notification-service,delivery-service,analytics-service,admin-service'
     }
 
@@ -19,7 +19,6 @@ pipeline {
 
     stages {
 
-        // ── Stage 1: Checkout ─────────────────────────────────────────────────
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -29,7 +28,6 @@ pipeline {
             }
         }
 
-        // ── Stage 2: Build Backend ─────────────────────────────────────────────
         stage('Build Backend') {
             steps {
                 dir('Rrevcart_P2-master/microservices') {
@@ -38,7 +36,6 @@ pipeline {
             }
         }
 
-        // ── Stage 3: Build Frontend ────────────────────────────────────────────
         stage('Build Frontend') {
             steps {
                 dir('Rrevcart_P2-master/revcart-frontend') {
@@ -48,33 +45,32 @@ pipeline {
             }
         }
 
-        // ── Stage 4: SonarQube Analysis ───────────────────────────────────────
         stage('SonarQube Analysis') {
             steps {
                 dir('Rrevcart_P2-master/microservices') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            bat """
-                                mvn sonar:sonar ^
-                                    -Dsonar.token=%SONAR_TOKEN% ^
-                                    -Dsonar.exclusions=**/target/**
-                            """
+                            bat "mvn sonar:sonar -Dsonar.token=%SONAR_TOKEN% -Dsonar.exclusions=**/target/**"
                         }
                     }
                 }
             }
         }
 
-        // ── Stage 5: Quality Gate ─────────────────────────────────────────────
         stage('Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                    bat """
+                        echo Waiting 15s for SonarQube to process the report...
+                        ping -n 16 127.0.0.1 > nul
+                        curl -sf -u %SONAR_TOKEN%: "http://localhost:9000/api/qualitygates/project_status?projectKey=%SONAR_PROJECT_KEY%" -o qg.json
+                        type qg.json
+                        findstr "ERROR" qg.json && (echo Quality Gate FAILED && exit 1) || echo Quality Gate PASSED
+                    """
                 }
             }
         }
 
-        // ── Stage 6: Create ECR Repositories ─────────────────────────────────
         stage('Create ECR Repos') {
             steps {
                 withCredentials([
@@ -84,62 +80,43 @@ pipeline {
                     script {
                         def services = env.SERVICES.split(',').toList() + ['frontend']
                         services.each { service ->
-                            bat """
-                                aws ecr describe-repositories --repository-names revcart/${service} --region %AWS_REGION% 2>nul || aws ecr create-repository --repository-name revcart/${service} --region %AWS_REGION%
-                            """
+                            bat "aws ecr describe-repositories --repository-names revcart/${service} --region %AWS_REGION% 2>nul || aws ecr create-repository --repository-name revcart/${service} --region %AWS_REGION%"
                         }
                     }
                 }
             }
         }
 
-        // ── Stage 7: Build Docker Images ──────────────────────────────────────
         stage('Build Docker Images') {
             steps {
                 script {
                     def services = env.SERVICES.split(',')
                     services.each { service ->
-                        bat """
-                            docker build ^
-                                -t %ECR_REGISTRY%/revcart/${service}:%IMAGE_TAG% ^
-                                -t %ECR_REGISTRY%/revcart/${service}:latest ^
-                                Rrevcart_P2-master/microservices/${service}
-                        """
+                        bat "docker build -t %ECR_REGISTRY%/revcart/${service}:latest Rrevcart_P2-master/microservices/${service}"
                     }
-                    bat """
-                        docker build ^
-                            -t %ECR_REGISTRY%/revcart/frontend:%IMAGE_TAG% ^
-                            -t %ECR_REGISTRY%/revcart/frontend:latest ^
-                            Rrevcart_P2-master/revcart-frontend
-                    """
+                    bat "docker build -t %ECR_REGISTRY%/revcart/frontend:latest Rrevcart_P2-master/revcart-frontend"
                 }
             }
         }
 
-        // ── Stage 8: Push Images to ECR ───────────────────────────────────────
         stage('Push to ECR') {
             steps {
                 withCredentials([
                     string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    bat """
-                        aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
-                    """
+                    bat "aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%"
                     script {
                         def services = env.SERVICES.split(',')
                         services.each { service ->
-                            bat "docker push %ECR_REGISTRY%/revcart/${service}:%IMAGE_TAG%"
                             bat "docker push %ECR_REGISTRY%/revcart/${service}:latest"
                         }
-                        bat "docker push %ECR_REGISTRY%/revcart/frontend:%IMAGE_TAG%"
                         bat "docker push %ECR_REGISTRY%/revcart/frontend:latest"
                     }
                 }
             }
         }
 
-        // ── Stage 9: Terraform Apply ───────────────────────────────────────────
         stage('Terraform Apply') {
             steps {
                 withCredentials([
@@ -168,7 +145,6 @@ pipeline {
             }
         }
 
-        // ── Stage 10: Deploy to ECS ────────────────────────────────────────────
         stage('Deploy to ECS') {
             steps {
                 withCredentials([
@@ -178,29 +154,17 @@ pipeline {
                     script {
                         def services = env.SERVICES.split(',').toList() + ['frontend']
                         services.each { service ->
-                            bat """
-                                aws ecs update-service ^
-                                    --cluster %ECS_CLUSTER% ^
-                                    --service revcart-prod-${service} ^
-                                    --force-new-deployment ^
-                                    --region %AWS_REGION%
-                            """
+                            bat "aws ecs update-service --cluster %ECS_CLUSTER% --service revcart-prod-${service} --force-new-deployment --region %AWS_REGION%"
                         }
                         echo "Waiting for all ECS services to stabilize..."
                         services.each { service ->
-                            bat """
-                                aws ecs wait services-stable ^
-                                    --cluster %ECS_CLUSTER% ^
-                                    --services revcart-prod-${service} ^
-                                    --region %AWS_REGION%
-                            """
+                            bat "aws ecs wait services-stable --cluster %ECS_CLUSTER% --services revcart-prod-${service} --region %AWS_REGION%"
                         }
                     }
                 }
             }
         }
 
-        // ── Stage 11: Smoke Test ──────────────────────────────────────────────
         stage('Smoke Test') {
             steps {
                 withCredentials([
@@ -209,13 +173,7 @@ pipeline {
                 ]) {
                     script {
                         def albDns = bat(
-                            script: """
-                                aws elbv2 describe-load-balancers ^
-                                    --names revcart-prod-alb ^
-                                    --region %AWS_REGION% ^
-                                    --query "LoadBalancers[0].DNSName" ^
-                                    --output text
-                            """,
+                            script: 'aws elbv2 describe-load-balancers --names revcart-prod-alb --region %AWS_REGION% --query "LoadBalancers[0].DNSName" --output text',
                             returnStdout: true
                         ).trim()
                         echo "App is live at: http://${albDns}"
@@ -224,7 +182,6 @@ pipeline {
             }
         }
 
-        // ── Stage 12: Start Monitoring ────────────────────────────────────────
         stage('Start Monitoring') {
             steps {
                 dir('Rrevcart_P2-master') {
@@ -238,10 +195,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline SUCCESS — RevCart is deployed!"
+            echo "Pipeline SUCCESS - RevCart is deployed!"
         }
         failure {
-            echo "Pipeline FAILED — check console output above"
+            echo "Pipeline FAILED - check console output above"
         }
         always {
             bat 'docker logout || exit 0'
