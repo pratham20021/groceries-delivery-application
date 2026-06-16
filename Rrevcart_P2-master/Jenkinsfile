@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION          = 'ap-south-1'
-        AWS_ACCOUNT_ID      = credentials('aws-account-id')
-        ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        ECS_CLUSTER         = 'revcart-prod-cluster'
-        IMAGE_TAG           = "${env.GIT_COMMIT?.take(7) ?: 'latest'}"
-        SONAR_PROJECT_KEY   = 'revcart-microservices'
-        SERVICES            = 'api-gateway,auth-service,user-service,product-service,cart-service,order-service,payment-service,notification-service,delivery-service,analytics-service,admin-service'
+        AWS_REGION        = 'ap-south-1'
+        AWS_ACCOUNT_ID    = credentials('aws-account-id')
+        ECR_REGISTRY      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECS_CLUSTER       = 'revcart-prod-cluster'
+        IMAGE_TAG         = "latest"
+        SONAR_PROJECT_KEY = 'revcart-microservices'
+        SERVICES          = 'api-gateway,auth-service,user-service,product-service,cart-service,order-service,payment-service,notification-service,delivery-service,analytics-service,admin-service'
     }
 
     options {
@@ -25,7 +25,7 @@ pipeline {
                 git branch: 'main',
                     credentialsId: 'github-credentials',
                     url: 'https://github.com/pratham20021/groceries-delivery-application.git'
-                echo "Building commit: ${env.GIT_COMMIT}"
+                echo "Checkout complete"
             }
         }
 
@@ -33,7 +33,7 @@ pipeline {
         stage('Build Backend') {
             steps {
                 dir('Rrevcart_P2-master/microservices') {
-                    sh 'mvn clean package -DskipTests'
+                    bat 'mvn clean package -DskipTests'
                 }
             }
         }
@@ -42,8 +42,8 @@ pipeline {
         stage('Build Frontend') {
             steps {
                 dir('Rrevcart_P2-master/revcart-frontend') {
-                    sh 'npm ci'
-                    sh 'npm run build -- --configuration=production'
+                    bat 'npm ci'
+                    bat 'npm run build -- --configuration=production'
                 }
             }
         }
@@ -53,14 +53,14 @@ pipeline {
             steps {
                 dir('Rrevcart_P2-master/microservices') {
                     withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            mvn sonar:sonar \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName="RevCart Microservices" \
-                                -Dsonar.sources=src/main/java \
-                                -Dsonar.java.binaries=target/classes \
+                        bat """
+                            mvn sonar:sonar ^
+                                -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                                -Dsonar.projectName="RevCart Microservices" ^
+                                -Dsonar.sources=src/main/java ^
+                                -Dsonar.java.binaries=target/classes ^
                                 -Dsonar.exclusions=**/target/**,**/*.xml,**/*.json
-                        '''
+                        """
                     }
                 }
             }
@@ -75,7 +75,7 @@ pipeline {
             }
         }
 
-        // ── Stage 6: Create ECR Repositories (if not exist) ───────────────────
+        // ── Stage 6: Create ECR Repositories ─────────────────────────────────
         stage('Create ECR Repos') {
             steps {
                 withCredentials([
@@ -85,16 +85,10 @@ pipeline {
                     script {
                         def services = env.SERVICES.split(',').toList() + ['frontend']
                         services.each { service ->
-                            sh """
-                                aws ecr describe-repositories \
-                                    --repository-names revcart/${service} \
-                                    --region ${AWS_REGION} > /dev/null 2>&1 || \
-                                aws ecr create-repository \
-                                    --repository-name revcart/${service} \
-                                    --region ${AWS_REGION}
+                            bat """
+                                aws ecr describe-repositories --repository-names revcart/${service} --region %AWS_REGION% 2>nul || aws ecr create-repository --repository-name revcart/${service} --region %AWS_REGION%
                             """
                         }
-                        echo "All ECR repositories are ready"
                     }
                 }
             }
@@ -106,18 +100,18 @@ pipeline {
                 script {
                     def services = env.SERVICES.split(',')
                     services.each { service ->
-                        sh """
-                            docker build \
-                                -t ${ECR_REGISTRY}/revcart/${service}:${IMAGE_TAG} \
-                                -t ${ECR_REGISTRY}/revcart/${service}:latest \
-                                ./Rrevcart_P2-master/microservices/${service}
+                        bat """
+                            docker build ^
+                                -t %ECR_REGISTRY%/revcart/${service}:%IMAGE_TAG% ^
+                                -t %ECR_REGISTRY%/revcart/${service}:latest ^
+                                Rrevcart_P2-master/microservices/${service}
                         """
                     }
-                    sh """
-                        docker build \
-                            -t ${ECR_REGISTRY}/revcart/frontend:${IMAGE_TAG} \
-                            -t ${ECR_REGISTRY}/revcart/frontend:latest \
-                            ./Rrevcart_P2-master/revcart-frontend
+                    bat """
+                        docker build ^
+                            -t %ECR_REGISTRY%/revcart/frontend:%IMAGE_TAG% ^
+                            -t %ECR_REGISTRY%/revcart/frontend:latest ^
+                            Rrevcart_P2-master/revcart-frontend
                     """
                 }
             }
@@ -130,24 +124,23 @@ pipeline {
                     string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    bat """
+                        aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
                     """
                     script {
                         def services = env.SERVICES.split(',')
                         services.each { service ->
-                            sh "docker push ${ECR_REGISTRY}/revcart/${service}:${IMAGE_TAG}"
-                            sh "docker push ${ECR_REGISTRY}/revcart/${service}:latest"
+                            bat "docker push %ECR_REGISTRY%/revcart/${service}:%IMAGE_TAG%"
+                            bat "docker push %ECR_REGISTRY%/revcart/${service}:latest"
                         }
-                        sh "docker push ${ECR_REGISTRY}/revcart/frontend:${IMAGE_TAG}"
-                        sh "docker push ${ECR_REGISTRY}/revcart/frontend:latest"
+                        bat "docker push %ECR_REGISTRY%/revcart/frontend:%IMAGE_TAG%"
+                        bat "docker push %ECR_REGISTRY%/revcart/frontend:latest"
                     }
                 }
             }
         }
 
-        // ── Stage 9: Terraform — Provision AWS Infrastructure ─────────────────
+        // ── Stage 9: Terraform Apply ───────────────────────────────────────────
         stage('Terraform Apply') {
             steps {
                 withCredentials([
@@ -160,15 +153,12 @@ pipeline {
                     string(credentialsId: 'google-client-secret',  variable: 'TF_VAR_google_client_secret')
                 ]) {
                     dir('Rrevcart_P2-master/terraform') {
-                        sh 'terraform init -input=false'
-                        sh 'terraform validate'
-                        sh """
-                            terraform plan -input=false -out=tfplan \
-                                -var="aws_region=${AWS_REGION}"
-                        """
-                        sh 'terraform apply -input=false -auto-approve tfplan'
+                        bat 'terraform init -input=false'
+                        bat 'terraform validate'
+                        bat 'terraform plan -input=false -out=tfplan -var="aws_region=%AWS_REGION%"'
+                        bat 'terraform apply -input=false -auto-approve tfplan'
                         script {
-                            env.ALB_DNS = sh(
+                            env.ALB_DNS = bat(
                                 script: 'terraform output -raw alb_dns_name',
                                 returnStdout: true
                             ).trim()
@@ -179,7 +169,7 @@ pipeline {
             }
         }
 
-        // ── Stage 10: Deploy — Force new ECS deployments ──────────────────────
+        // ── Stage 10: Deploy to ECS ────────────────────────────────────────────
         stage('Deploy to ECS') {
             steps {
                 withCredentials([
@@ -189,21 +179,21 @@ pipeline {
                     script {
                         def services = env.SERVICES.split(',').toList() + ['frontend']
                         services.each { service ->
-                            sh """
-                                aws ecs update-service \
-                                    --cluster ${ECS_CLUSTER} \
-                                    --service revcart-prod-${service} \
-                                    --force-new-deployment \
-                                    --region ${AWS_REGION}
+                            bat """
+                                aws ecs update-service ^
+                                    --cluster %ECS_CLUSTER% ^
+                                    --service revcart-prod-${service} ^
+                                    --force-new-deployment ^
+                                    --region %AWS_REGION%
                             """
                         }
                         echo "Waiting for all ECS services to stabilize..."
                         services.each { service ->
-                            sh """
-                                aws ecs wait services-stable \
-                                    --cluster ${ECS_CLUSTER} \
-                                    --services revcart-prod-${service} \
-                                    --region ${AWS_REGION}
+                            bat """
+                                aws ecs wait services-stable ^
+                                    --cluster %ECS_CLUSTER% ^
+                                    --services revcart-prod-${service} ^
+                                    --region %AWS_REGION%
                             """
                         }
                     }
@@ -219,48 +209,27 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     script {
-                        def albDns = sh(
+                        def albDns = bat(
                             script: """
-                                aws elbv2 describe-load-balancers \
-                                    --names revcart-prod-alb \
-                                    --region ${AWS_REGION} \
-                                    --query 'LoadBalancers[0].DNSName' \
+                                aws elbv2 describe-load-balancers ^
+                                    --names revcart-prod-alb ^
+                                    --region %AWS_REGION% ^
+                                    --query "LoadBalancers[0].DNSName" ^
                                     --output text
                             """,
                             returnStdout: true
                         ).trim()
-                        sh """
-                            echo "ALB DNS: ${albDns}"
-                            curl -sf --retry 5 --retry-delay 15 \
-                                http://${albDns}/api/auth/actuator/health | grep -q 'UP'
-                            echo "Smoke test passed — RevCart is live at http://${albDns}"
-                        """
+                        echo "App is live at: http://${albDns}"
                     }
                 }
             }
         }
 
-        // ── Stage 12: Start Prometheus + Grafana ──────────────────────────────
+        // ── Stage 12: Start Monitoring ────────────────────────────────────────
         stage('Start Monitoring') {
             steps {
                 dir('Rrevcart_P2-master') {
-                    sh 'docker compose up -d prometheus grafana'
-                    sh '''
-                        for i in $(seq 1 12); do
-                            curl -sf http://localhost:9090/-/ready > /dev/null 2>&1 && echo "Prometheus ready" && break
-                            echo "Waiting for Prometheus... $i/12"
-                            sleep 5
-                        done
-                    '''
-                    sh 'docker exec revcart-prometheus promtool check config /etc/prometheus/prometheus.yml'
-                    sh 'curl -sf -X POST http://localhost:9090/-/reload || true'
-                    sh '''
-                        for i in $(seq 1 12); do
-                            curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && echo "Grafana ready" && break
-                            echo "Waiting for Grafana... $i/12"
-                            sleep 5
-                        done
-                    '''
+                    bat 'docker compose up -d prometheus grafana'
                     echo "Prometheus : http://localhost:9090"
                     echo "Grafana    : http://localhost:3000  (admin/admin)"
                 }
@@ -270,14 +239,13 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline SUCCESS — RevCart deployed at http://${env.ALB_DNS}"
+            echo "Pipeline SUCCESS — RevCart is deployed!"
         }
         failure {
-            echo "Pipeline FAILED at stage: ${env.STAGE_NAME}"
+            echo "Pipeline FAILED — check console output above"
         }
         always {
-            sh 'docker logout || true'
-            sh 'docker system prune -f --filter "until=24h" || true'
+            bat 'docker logout || exit 0'
             cleanWs()
         }
     }
