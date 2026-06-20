@@ -17,6 +17,14 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    parameters {
+        booleanParam(
+            name: 'DESTROY_INFRA',
+            defaultValue: false,
+            description: 'Set to true to destroy all AWS infrastructure after the pipeline completes'
+        )
+    }
+
     stages {
 
         stage('Checkout') {
@@ -163,6 +171,29 @@ pipeline {
                     bat 'docker compose up -d prometheus grafana'
                     echo "Prometheus : http://localhost:9090"
                     echo "Grafana    : http://localhost:3000  (admin/admin)"
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { return params.DESTROY_INFRA == true }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'db-password',           variable: 'TF_VAR_db_password'),
+                    string(credentialsId: 'mail-username',         variable: 'TF_VAR_mail_username'),
+                    string(credentialsId: 'mail-password',         variable: 'TF_VAR_mail_password'),
+                    string(credentialsId: 'google-client-id',      variable: 'TF_VAR_google_client_id'),
+                    string(credentialsId: 'google-client-secret',  variable: 'TF_VAR_google_client_secret')
+                ]) {
+                    dir('Rrevcart_P2-master/terraform') {
+                        bat 'terraform init -input=false'
+                        bat 'terraform destroy -input=false -auto-approve -var="aws_region=%AWS_REGION%"'
+                        echo "Infrastructure destroyed successfully"
+                    }
                 }
             }
         }
