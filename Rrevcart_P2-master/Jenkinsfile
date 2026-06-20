@@ -70,22 +70,6 @@ pipeline {
             }
         }
 
-        stage('Create ECR Repos') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    script {
-                        def services = env.SERVICES.split(',').toList() + ['frontend']
-                        services.each { service ->
-                            bat "aws ecr describe-repositories --repository-names revcart/${service} --region %AWS_REGION% 2>nul || aws ecr create-repository --repository-name revcart/${service} --region %AWS_REGION%"
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Build Docker Images') {
             steps {
                 script {

@@ -21,9 +21,8 @@ output "redis_endpoint" {
 }
 
 output "docdb_endpoint" {
-  description = "DocumentDB endpoint"
-  value       = module.docdb.endpoint
-  sensitive   = true
+  description = "DocumentDB endpoint (disabled on free tier)"
+  value       = "disabled-upgrade-aws-account-to-enable"
 }
 
 output "ecs_cluster_name" {

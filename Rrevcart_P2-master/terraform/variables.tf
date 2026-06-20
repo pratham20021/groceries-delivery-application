@@ -80,7 +80,7 @@ variable "google_client_secret" {
 variable "rds_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.medium"
+  default     = "db.t3.micro"
 }
 
 variable "redis_node_type" {
@@ -92,7 +92,7 @@ variable "redis_node_type" {
 variable "docdb_instance_class" {
   description = "DocumentDB instance class"
   type        = string
-  default     = "db.t3.medium"
+  default     = "db.t3.medium"  # Not available on free tier — upgrade AWS account to use
 }
 
 variable "certificate_arn" {

@@ -76,15 +76,17 @@ module "elasticache" {
 }
 
 # ── DocumentDB (MongoDB-compatible) ───────────────────────────────────────────
-module "docdb" {
-  source            = "./modules/docdb"
-  project           = var.project
-  environment       = var.environment
-  subnet_ids        = module.vpc.private_subnet_ids
-  security_group_id = module.security_groups.docdb_sg_id
-  db_password       = var.db_password
-  instance_class    = var.docdb_instance_class
-}
+# NOTE: DocumentDB is NOT available on AWS free tier accounts.
+# To enable, upgrade your AWS account and uncomment this block.
+# module "docdb" {
+#   source            = "./modules/docdb"
+#   project           = var.project
+#   environment       = var.environment
+#   subnet_ids        = module.vpc.private_subnet_ids
+#   security_group_id = module.security_groups.docdb_sg_id
+#   db_password       = var.db_password
+#   instance_class    = var.docdb_instance_class
+# }
 
 # ── ALB ───────────────────────────────────────────────────────────────────────
 module "alb" {
@@ -123,7 +125,7 @@ module "ecs" {
   # Infrastructure endpoints
   mysql_endpoint    = module.rds.endpoint
   redis_endpoint    = module.elasticache.endpoint
-  docdb_endpoint    = module.docdb.endpoint
+  docdb_endpoint    = "localhost" # DocumentDB disabled on free tier — replace with actual endpoint when available
 
   db_password       = var.db_password
   mail_username     = var.mail_username
