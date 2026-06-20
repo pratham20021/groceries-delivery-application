@@ -137,41 +137,6 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    bat "aws eks update-kubeconfig --region %AWS_REGION% --name %ECS_CLUSTER%"
-                    dir('Rrevcart_P2-master/k8s') {
-                        bat "kubectl apply -f namespace.yaml"
-                        bat "kubectl apply -f configmap.yaml"
-                        bat "kubectl apply -f secrets.yaml"
-                        bat "kubectl apply -f infra/consul.yaml"
-                        bat "kubectl apply -f infra/mysql.yaml"
-                        bat "kubectl apply -f infra/mongodb.yaml"
-                        bat "kubectl apply -f infra/redis.yaml"
-                        bat "kubectl rollout status deployment/consul  -n revcart --timeout=120s"
-                        bat "kubectl rollout status deployment/mysql   -n revcart --timeout=180s"
-                        bat "kubectl rollout status deployment/mongodb -n revcart --timeout=180s"
-                        bat "kubectl rollout status deployment/redis   -n revcart --timeout=120s"
-                        script {
-                            def services = env.SERVICES.split(',')
-                            services.each { service ->
-                                bat "powershell -Command \"(Get-Content services/${service}.yaml) -replace '<YOUR_REGISTRY>', '%ECR_REGISTRY%' | Set-Content services/${service}.yaml\""
-                            }
-                            bat "powershell -Command \"(Get-Content services/frontend.yaml) -replace '<YOUR_REGISTRY>', '%ECR_REGISTRY%' | Set-Content services/frontend.yaml\""
-                        }
-                        bat "kubectl apply -f services/"
-                        bat "kubectl apply -f ingress.yaml"
-                        bat "kubectl apply -f monitoring/prometheus.yaml"
-                        bat "kubectl apply -f monitoring/grafana.yaml"
-                    }
-                }
-            }
-        }
-
         stage('Smoke Test') {
             steps {
                 withCredentials([
@@ -179,11 +144,14 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     script {
-                        def ingressIp = bat(
-                            script: 'kubectl get ingress revcart-ingress -n revcart -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"',
+                        def albDns = bat(
+                            script: """
+                                aws elbv2 describe-load-balancers --names revcart-prod-alb --region %AWS_REGION% --query "LoadBalancers[0].DNSName" --output text
+                            """,
                             returnStdout: true
-                        ).trim()
-                        echo "App is live at: http://${ingressIp}"
+                        ).trim().readLines().last()
+                        bat "curl -sf --retry 5 --retry-delay 10 http://${albDns}/api/auth/actuator/health || exit 0"
+                        echo "App is live at: http://${albDns}"
                     }
                 }
             }
