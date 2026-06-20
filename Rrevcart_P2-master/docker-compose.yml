@@ -361,7 +361,7 @@ services:
     image: prom/prometheus:v2.51.0
     container_name: revcart-prometheus
     ports:
-      - "9090:9090"
+      - "4000:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro

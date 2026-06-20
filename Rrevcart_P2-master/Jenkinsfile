@@ -114,6 +114,15 @@ pipeline {
                     dir('Rrevcart_P2-master/terraform') {
                         bat 'terraform init -input=false'
                         bat 'terraform validate'
+                        // Import existing ECR repos into state (idempotent - fails silently if already in state)
+                        script {
+                            def services = ['api-gateway','auth-service','user-service','product-service',
+                                           'cart-service','order-service','payment-service','notification-service',
+                                           'delivery-service','analytics-service','admin-service','frontend']
+                            services.each { svc ->
+                                bat "terraform import -input=false \"module.ecr.aws_ecr_repository.services[\\\"${svc}\\\"]\" revcart/${svc} 2>nul || exit 0"
+                            }
+                        }
                         bat 'terraform plan -input=false -out=tfplan -var="aws_region=%AWS_REGION%"'
                         bat 'terraform apply -input=false -auto-approve tfplan'
                         script {
